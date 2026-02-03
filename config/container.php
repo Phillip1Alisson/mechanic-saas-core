@@ -18,6 +18,7 @@ use App\Domain\Repositories\UserRepositoryInterface;
 use App\Domain\Services\AuthService;
 use App\Domain\Services\ClientService;
 use App\Infrastructure\Persistence\JsonClientRepository;
+use App\Infrastructure\Persistence\JsonUserRepository;
 use App\Infrastructure\Persistence\MySQLClientRepository;
 use App\Infrastructure\Persistence\MySQLUserRepository;
 use DI\ContainerBuilder;
@@ -34,8 +35,13 @@ $builder->addDefinitions([
             'user' => $_ENV['DB_USER'] ?? 'root',
             'pass' => $_ENV['DB_PASS'] ?? '',
         ],
-        'repository' => $_ENV['REPOSITORY'] ?? 'mysql',
-        'storage_path' => $_ENV['STORAGE_PATH'] ?? __DIR__ . '/../storage',
+        'repository' => trim((string) ($_ENV['REPOSITORY'] ?? 'mysql')),
+        'storage_path' => (function () {
+            $baseDir = dirname(__DIR__);
+            $path = $_ENV['STORAGE_PATH'] ?? $baseDir . '/storage';
+            $path = trim((string) $path);
+            return ($path !== '' && $path[0] === '/') ? $path : $baseDir . '/' . $path;
+        })(),
         'auth_secret' => $_ENV['AUTH_SECRET'] ?? 'change-me-in-production',
     ],
 
@@ -57,7 +63,12 @@ $builder->addDefinitions([
         return new MySQLClientRepository($c->get(PDO::class));
     },
 
+    // Repositório de usuários: alternar entre MySQL e JSON (mesmo que clientes)
     UserRepositoryInterface::class => function (ContainerInterface $c) {
+        $repo = $c->get('settings')['repository'];
+        if ($repo === 'json') {
+            return new JsonUserRepository($c->get('settings')['storage_path']);
+        }
         return new MySQLUserRepository($c->get(PDO::class));
     },
 
