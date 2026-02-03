@@ -51,6 +51,7 @@ A API fica em `http://localhost:8080`.
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
 | POST | `/login` | Não | Login (retorna token) |
+| POST | `/logout` | Sim | Logout (cliente descarta o token) |
 | GET | `/clients` | Sim | Lista clientes (paginação) |
 | GET | `/clients/{id}` | Sim | Busca cliente por ID |
 | POST | `/clients` | Sim | Cria cliente |
@@ -60,6 +61,7 @@ A API fica em `http://localhost:8080`.
 ### Autenticação
 
 - **Login:** `POST /login` com body JSON: `{"email": "...", "password": "..."}`. Resposta: `{"status": "success", "data": {"token": "..."}}`.
+- **Logout:** `POST /logout` com header `Authorization: Bearer <token>`. Resposta: `{"status": "success", "message": "Logout realizado com sucesso."}`. O cliente deve descartar o token (ex.: remover do localStorage).
 - **Rotas protegidas:** enviar header `Authorization: Bearer <token>`.
 
 ### Listagem (GET /clients) – parâmetros padrão do projeto

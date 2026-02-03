@@ -7,6 +7,7 @@ use App\Application\Actions\DeleteClientAction;
 use App\Application\Actions\GetClientAction;
 use App\Application\Actions\ListClientsAction;
 use App\Application\Actions\LoginAction;
+use App\Application\Actions\LogoutAction;
 use App\Application\Actions\UpdateClientAction;
 use App\Application\Middleware\AuthMiddleware;
 use Slim\App;
@@ -14,6 +15,8 @@ use Slim\Routing\RouteCollectorProxy;
 
 return function (App $app) {
     $app->post('/login', LoginAction::class);
+
+    $app->post('/logout', LogoutAction::class)->add(AuthMiddleware::class);
 
     $app->group('/clients', function (RouteCollectorProxy $group) {
         $group->get('', ListClientsAction::class);

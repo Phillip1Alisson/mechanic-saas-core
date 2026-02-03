@@ -7,6 +7,7 @@ use App\Application\Actions\DeleteClientAction;
 use App\Application\Actions\GetClientAction;
 use App\Application\Actions\ListClientsAction;
 use App\Application\Actions\LoginAction;
+use App\Application\Actions\LogoutAction;
 use App\Application\Actions\UpdateClientAction;
 use App\Application\Middleware\AuthMiddleware;
 use App\Application\Request\ClientListCriteriaConfig;
@@ -90,6 +91,7 @@ $builder->addDefinitions([
     LoginRequestValidator::class => \DI\autowire(),
 
     LoginAction::class => \DI\autowire(),
+    LogoutAction::class => \DI\autowire(),
     ListClientsAction::class => \DI\autowire(),
     GetClientAction::class => \DI\autowire(),
     CreateClientAction::class => \DI\autowire(),
