@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence;
 
+use App\Domain\Common\ListCriteria;
+use App\Domain\Common\ListResult;
 use App\Domain\Models\Client;
 use App\Domain\Repositories\ClientRepositoryInterface;
 use PDO;
 
 final class MySQLClientRepository implements ClientRepositoryInterface
 {
+    private const SEARCH_COLUMNS = ['name', 'document', 'phone'];
+
     public function __construct(private PDO $pdo)
     {
     }
@@ -22,25 +26,53 @@ final class MySQLClientRepository implements ClientRepositoryInterface
         return $row ? $this->rowToClient($row) : null;
     }
 
-    /** @return array{items: Client[], total: int} */
-    public function findAll(int $page = 1, int $perPage = 10): array
+    public function findAll(ListCriteria $criteria): ListResult
     {
-        $offset = ($page - 1) * $perPage;
+        $where = ['deleted_at IS NULL'];
+        $params = [];
 
-        $countStmt = $this->pdo->query('SELECT COUNT(*) FROM clients WHERE deleted_at IS NULL');
+        if ($criteria->hasSearch()) {
+            $conditions = [];
+            foreach (self::SEARCH_COLUMNS as $col) {
+                $conditions[] = '`' . $col . '` LIKE ?';
+                $params[] = '%' . $criteria->getSearch() . '%';
+            }
+            $where[] = '(' . implode(' OR ', $conditions) . ')';
+        }
+
+        if ($criteria->hasFilter()) {
+            foreach ($criteria->getFilter() as $column => $value) {
+                $where[] = '`' . $column . '` = ?';
+                $params[] = $value;
+            }
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $countSql = 'SELECT COUNT(*) FROM clients WHERE ' . $whereSql;
+        $countStmt = $this->pdo->prepare($countSql);
+        $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        $stmt = $this->pdo->prepare('SELECT id, name, phone, type, document, created_at, updated_at, deleted_at FROM clients WHERE deleted_at IS NULL ORDER BY id ASC LIMIT ? OFFSET ?');
-        $stmt->bindValue(1, $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(2, $offset, PDO::PARAM_INT);
-        $stmt->execute();
+        $orderParts = [];
+        foreach ($criteria->getSort() as $col => $dir) {
+            $orderParts[] = '`' . $col . '` ' . ($dir === 'desc' ? 'DESC' : 'ASC');
+        }
+        $orderSql = $orderParts === [] ? 'id ASC' : implode(', ', $orderParts);
+
+        $params[] = $criteria->getPerPage();
+        $params[] = $criteria->getOffset();
+        $stmt = $this->pdo->prepare(
+            'SELECT id, name, phone, type, document, created_at, updated_at, deleted_at FROM clients WHERE ' . $whereSql . ' ORDER BY ' . $orderSql . ' LIMIT ? OFFSET ?'
+        );
+        $stmt->execute($params);
 
         $items = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $items[] = $this->rowToClient($row);
         }
 
-        return ['items' => $items, 'total' => $total];
+        return new ListResult($items, $total, $criteria->getPage(), $criteria->getPerPage());
     }
 
     public function save(Client $client): Client

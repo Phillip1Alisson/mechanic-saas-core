@@ -9,7 +9,9 @@ use App\Application\Actions\ListClientsAction;
 use App\Application\Actions\LoginAction;
 use App\Application\Actions\UpdateClientAction;
 use App\Application\Middleware\AuthMiddleware;
+use App\Application\Request\ClientListCriteriaConfig;
 use App\Application\Request\ClientRequestValidator;
+use App\Application\Request\ListCriteriaParser;
 use App\Application\Request\LoginRequestValidator;
 use App\Domain\Repositories\ClientRepositoryInterface;
 use App\Domain\Repositories\UserRepositoryInterface;
@@ -69,6 +71,9 @@ $builder->addDefinitions([
     ClientService::class => function (ContainerInterface $c) {
         return new ClientService($c->get(ClientRepositoryInterface::class));
     },
+
+    ListCriteriaParser::class => \DI\autowire(),
+    ClientListCriteriaConfig::class => \DI\autowire(),
 
     ClientRequestValidator::class => \DI\autowire(),
     LoginRequestValidator::class => \DI\autowire(),

@@ -62,9 +62,16 @@ A API fica em `http://localhost:8080`.
 - **Login:** `POST /login` com body JSON: `{"email": "...", "password": "..."}`. Resposta: `{"status": "success", "data": {"token": "..."}}`.
 - **Rotas protegidas:** enviar header `Authorization: Bearer <token>`.
 
-### Paginação
+### Listagem (GET /clients) – parâmetros padrão do projeto
 
-- **Listagem:** `GET /clients?page=1&perPage=10` (padrão: page=1, perPage=10; perPage limitado a 100).
+- **page** (int): Página (padrão 1).
+- **perPage** (int): Itens por página (padrão 10; máximo 200).
+- **search** (string): Busca em nome, documento e telefone (LIKE).
+- **sort** (string): Ordenação. Formato: `coluna:asc` ou `coluna:desc`; múltiplas separadas por vírgula (ex.: `name:asc,id:desc`). Colunas: id, name, phone, type, document, created_at, updated_at.
+- **filter** (coluna = valor): Filtro exato. Ex.: `?type=PF` ou `?filter[type]=PF`. Para clientes: type (PF/PJ).
+
+Exemplos:  
+`GET /clients?page=1&perPage=20&search=Silva&sort=name:asc&type=PF`
 
 ### Formato de resposta
 
@@ -114,8 +121,9 @@ src/
 ├── Application/
 │   ├── Actions/          # Controllers (Login, CRUD clientes)
 │   ├── Middleware/       # AuthMiddleware
-│   └── Request/          # Validators (Client, Login)
+│   └── Request/          # Validators; ListCriteriaConfig, ListCriteriaParser; ClientListCriteriaConfig
 ├── Domain/
+│   ├── Common/           # ListCriteria, ListResult (padrão de listagem)
 │   ├── Models/           # Client, User
 │   ├── Repositories/     # Interfaces
 │   └── Services/         # ClientService, AuthService

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
+use App\Domain\Common\ListCriteria;
+use App\Domain\Common\ListResult;
 use App\Domain\Models\Client;
 use App\Domain\Repositories\ClientRepositoryInterface;
 
@@ -19,12 +21,9 @@ final class ClientService
         return $this->clientRepository->findById($id);
     }
 
-    /** @return array{items: Client[], total: int} */
-    public function list(int $page = 1, int $perPage = 10): array
+    public function list(ListCriteria $criteria): ListResult
     {
-        $page = max(1, $page);
-        $perPage = min(max(1, $perPage), 100);
-        return $this->clientRepository->findAll($page, $perPage);
+        return $this->clientRepository->findAll($criteria);
     }
 
     public function create(string $name, string $phone, string $type, string $document): Client

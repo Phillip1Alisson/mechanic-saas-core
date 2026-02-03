@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence;
 
+use App\Domain\Common\ListCriteria;
+use App\Domain\Common\ListResult;
 use App\Domain\Models\Client;
 use App\Domain\Repositories\ClientRepositoryInterface;
 
 final class JsonClientRepository implements ClientRepositoryInterface
 {
+    private const SEARCH_COLUMNS = ['name', 'document', 'phone'];
+
     public function __construct(private string $storagePath)
     {
     }
@@ -58,15 +62,53 @@ final class JsonClientRepository implements ClientRepositoryInterface
         return $this->rowToClient($row);
     }
 
-    /** @return array{items: Client[], total: int} */
-    public function findAll(int $page = 1, int $perPage = 10): array
+    public function findAll(ListCriteria $criteria): ListResult
     {
         $data = $this->loadData();
         $active = array_filter($data, fn (array $row) => empty($row['deleted_at']));
+
+        if ($criteria->hasSearch()) {
+            $search = mb_strtolower($criteria->getSearch());
+            $active = array_filter($active, function (array $row) use ($search) {
+                foreach (self::SEARCH_COLUMNS as $col) {
+                    if (isset($row[$col]) && mb_strpos(mb_strtolower((string) $row[$col]), $search) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        if ($criteria->hasFilter()) {
+            foreach ($criteria->getFilter() as $column => $value) {
+                $active = array_filter($active, fn (array $row) => isset($row[$column]) && (string) $row[$column] === (string) $value);
+            }
+        }
+
+        $active = array_values($active);
         $total = count($active);
-        $items = array_slice(array_values($active), ($page - 1) * $perPage, $perPage, true);
-        $clients = array_map(fn (array $row) => $this->rowToClient($row), $items);
-        return ['items' => $clients, 'total' => $total];
+
+        $sort = $criteria->getSort();
+        if ($sort !== []) {
+            usort($active, function (array $a, array $b) use ($sort) {
+                foreach ($sort as $col => $dir) {
+                    $va = $a[$col] ?? '';
+                    $vb = $b[$col] ?? '';
+                    $cmp = is_numeric($va) && is_numeric($vb) ? $va <=> $vb : strcmp((string) $va, (string) $vb);
+                    if ($cmp !== 0) {
+                        return $dir === 'desc' ? -$cmp : $cmp;
+                    }
+                }
+                return 0;
+            });
+        }
+
+        $page = $criteria->getPage();
+        $perPage = $criteria->getPerPage();
+        $slice = array_slice($active, ($page - 1) * $perPage, $perPage);
+        $items = array_map(fn (array $row) => $this->rowToClient($row), $slice);
+
+        return new ListResult($items, $total, $page, $perPage);
     }
 
     public function save(Client $client): Client
