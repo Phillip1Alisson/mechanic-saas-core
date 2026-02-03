@@ -26,6 +26,21 @@ final class MySQLClientRepository implements ClientRepositoryInterface
         return $row ? $this->rowToClient($row) : null;
     }
 
+    public function findByDocument(string $document, ?int $excludeId = null): ?Client
+    {
+        $normalized = preg_replace('/\D/', '', $document);
+        $sql = 'SELECT id, name, phone, type, document, created_at, updated_at, deleted_at FROM clients WHERE REPLACE(REPLACE(REPLACE(REPLACE(document, ".", ""), "-", ""), "/", ""), " ", "") = ? AND deleted_at IS NULL';
+        $params = [$normalized];
+        if ($excludeId !== null) {
+            $sql .= ' AND id != ?';
+            $params[] = $excludeId;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $this->rowToClient($row) : null;
+    }
+
     public function findAll(ListCriteria $criteria): ListResult
     {
         $where = ['deleted_at IS NULL'];

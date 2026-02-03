@@ -6,6 +6,7 @@ namespace App\Domain\Services;
 
 use App\Domain\Common\ListCriteria;
 use App\Domain\Common\ListResult;
+use App\Domain\Exception\DocumentAlreadyExistsException;
 use App\Domain\Models\Client;
 use App\Domain\Repositories\ClientRepositoryInterface;
 
@@ -28,6 +29,9 @@ final class ClientService
 
     public function create(string $name, string $phone, string $type, string $document): Client
     {
+        if ($this->clientRepository->findByDocument($document) !== null) {
+            throw new DocumentAlreadyExistsException();
+        }
         $client = new Client(null, $name, $phone, $type, $document);
         return $this->clientRepository->save($client);
     }
@@ -37,6 +41,9 @@ final class ClientService
         $client = $this->clientRepository->findById($id);
         if ($client === null) {
             return null;
+        }
+        if ($this->clientRepository->findByDocument($document, $id) !== null) {
+            throw new DocumentAlreadyExistsException();
         }
         $updated = new Client(
             $client->getId(),

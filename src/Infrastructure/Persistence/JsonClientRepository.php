@@ -62,6 +62,25 @@ final class JsonClientRepository implements ClientRepositoryInterface
         return $this->rowToClient($row);
     }
 
+    public function findByDocument(string $document, ?int $excludeId = null): ?Client
+    {
+        $normalized = preg_replace('/\D/', '', $document);
+        $data = $this->loadData();
+        foreach ($data as $id => $row) {
+            if (!empty($row['deleted_at'])) {
+                continue;
+            }
+            if ($excludeId !== null && (int) $id === $excludeId) {
+                continue;
+            }
+            $existing = preg_replace('/\D/', '', (string) ($row['document'] ?? ''));
+            if ($existing === $normalized) {
+                return $this->rowToClient($row);
+            }
+        }
+        return null;
+    }
+
     public function findAll(ListCriteria $criteria): ListResult
     {
         $data = $this->loadData();

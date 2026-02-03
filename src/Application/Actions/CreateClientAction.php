@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Actions;
 
 use App\Application\Request\ClientRequestValidator;
+use App\Domain\Exception\DocumentAlreadyExistsException;
 use App\Domain\Services\ClientService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -30,7 +31,17 @@ final class CreateClientAction
         }
 
         $d = $result['data'];
-        $client = $this->clientService->create($d['name'], $d['phone'], $d['type'], $d['document']);
+        try {
+            $client = $this->clientService->create($d['name'], $d['phone'], $d['type'], $d['document']);
+        } catch (DocumentAlreadyExistsException) {
+            $msg = $d['type'] === 'PF' ? 'CPF já existente.' : 'CNPJ já existente.';
+            $response->getBody()->write(json_encode([
+                'status' => 'error',
+                'message' => $msg,
+                'data' => null,
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(409);
+        }
 
         $response->getBody()->write(json_encode([
             'status' => 'success',

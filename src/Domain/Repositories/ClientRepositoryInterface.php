@@ -12,6 +12,9 @@ interface ClientRepositoryInterface
 {
     public function findById(int $id): ?Client;
 
+    /** Busca cliente por CPF/CNPJ. Se $excludeId for informado, ignora o cliente com esse ID (útil na atualização). */
+    public function findByDocument(string $document, ?int $excludeId = null): ?Client;
+
     public function findAll(ListCriteria $criteria): ListResult;
 
     public function save(Client $client): Client;
