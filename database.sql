@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_email (email)
 ) ENGINE=InnoDB;
 
--- Tabela de clientes (PF/PJ)
+-- Tabela de clientes (PF/PJ) com soft delete
 CREATE TABLE IF NOT EXISTS clients (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -22,8 +22,10 @@ CREATE TABLE IF NOT EXISTS clients (
     document VARCHAR(20) NOT NULL COMMENT 'CPF (11 dígitos) ou CNPJ (14 dígitos)',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL DEFAULT NULL COMMENT 'Soft delete',
     INDEX idx_type (type),
-    INDEX idx_document (document)
+    INDEX idx_document (document),
+    INDEX idx_deleted_at (deleted_at)
 ) ENGINE=InnoDB;
 
 -- Usuário de exemplo (senha: admin123)

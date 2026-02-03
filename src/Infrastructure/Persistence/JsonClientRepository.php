@@ -18,7 +18,7 @@ final class JsonClientRepository implements ClientRepositoryInterface
         return $this->storagePath . '/clients.json';
     }
 
-    /** @return array<int, array{id: int, name: string, phone: string, type: string, document: string, created_at: string|null, updated_at: string|null}> */
+    /** @return array<int, array{id: int, name: string, phone: string, type: string, document: string, created_at: string|null, updated_at: string|null, deleted_at?: string|null}> */
     private function loadData(): array
     {
         $path = $this->getFilePath();
@@ -52,15 +52,19 @@ final class JsonClientRepository implements ClientRepositoryInterface
     {
         $data = $this->loadData();
         $row = $data[$id] ?? null;
-        return $row ? $this->rowToClient($row) : null;
+        if ($row === null || !empty($row['deleted_at'])) {
+            return null;
+        }
+        return $this->rowToClient($row);
     }
 
     /** @return array{items: Client[], total: int} */
     public function findAll(int $page = 1, int $perPage = 10): array
     {
         $data = $this->loadData();
-        $total = count($data);
-        $items = array_slice(array_values($data), ($page - 1) * $perPage, $perPage, true);
+        $active = array_filter($data, fn (array $row) => empty($row['deleted_at']));
+        $total = count($active);
+        $items = array_slice(array_values($active), ($page - 1) * $perPage, $perPage, true);
         $clients = array_map(fn (array $row) => $this->rowToClient($row), $items);
         return ['items' => $clients, 'total' => $total];
     }
@@ -80,6 +84,7 @@ final class JsonClientRepository implements ClientRepositoryInterface
                 'document' => $client->getDocument(),
                 'created_at' => $now,
                 'updated_at' => $now,
+                'deleted_at' => null,
             ];
             $data[$id] = $row;
             $this->saveData($data);
@@ -96,6 +101,7 @@ final class JsonClientRepository implements ClientRepositoryInterface
             'document' => $client->getDocument(),
             'created_at' => $existing['created_at'] ?? $now,
             'updated_at' => $now,
+            'deleted_at' => null,
         ];
         $this->saveData($data);
         return $this->rowToClient($data[$id]);
@@ -104,15 +110,15 @@ final class JsonClientRepository implements ClientRepositoryInterface
     public function delete(int $id): bool
     {
         $data = $this->loadData();
-        if (!isset($data[$id])) {
+        if (!isset($data[$id]) || !empty($data[$id]['deleted_at'])) {
             return false;
         }
-        unset($data[$id]);
+        $data[$id]['deleted_at'] = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
         $this->saveData($data);
         return true;
     }
 
-    /** @param array{id: int, name: string, phone: string, type: string, document: string, created_at: string|null, updated_at: string|null} $row */
+    /** @param array{id: int, name: string, phone: string, type: string, document: string, created_at: string|null, updated_at: string|null, deleted_at?: string|null} $row */
     private function rowToClient(array $row): Client
     {
         return new Client(
@@ -123,6 +129,7 @@ final class JsonClientRepository implements ClientRepositoryInterface
             $row['document'],
             isset($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null,
             isset($row['updated_at']) ? new \DateTimeImmutable($row['updated_at']) : null,
+            !empty($row['deleted_at']) ? new \DateTimeImmutable($row['deleted_at']) : null,
         );
     }
 }

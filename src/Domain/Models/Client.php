@@ -14,6 +14,7 @@ final class Client
         private string $document, // CPF ou CNPJ
         private ?\DateTimeImmutable $createdAt = null,
         private ?\DateTimeImmutable $updatedAt = null,
+        private ?\DateTimeImmutable $deletedAt = null,
     ) {
     }
 
@@ -52,6 +53,11 @@ final class Client
         return $this->updatedAt;
     }
 
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
     public function toArray(): array
     {
         return [
@@ -62,6 +68,7 @@ final class Client
             'document' => $this->document,
             'created_at' => $this->createdAt?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updatedAt?->format('Y-m-d H:i:s'),
+            'deleted_at' => $this->deletedAt?->format('Y-m-d H:i:s'),
         ];
     }
 }

@@ -29,6 +29,9 @@ cp .env.example .env
 mysql -u root -p < database.sql
 ```
 
+Se a tabela `clients` já existir sem a coluna `deleted_at`, execute:  
+`ALTER TABLE clients ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER updated_at, ADD INDEX idx_deleted_at (deleted_at);`
+
 4. **Criar um usuário para login (exemplo – senha `admin123`):**
 
 ```sql
