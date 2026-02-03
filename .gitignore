@@ -1,0 +1,5 @@
+/vendor/
+.env
+storage/*.json
+!storage/.gitkeep
+composer.phar
