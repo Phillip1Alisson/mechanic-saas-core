@@ -10,6 +10,7 @@ use App\Application\Actions\LoginAction;
 use App\Application\Actions\LogoutAction;
 use App\Application\Actions\UpdateClientAction;
 use App\Application\Middleware\AuthMiddleware;
+use App\Application\Middleware\CorsMiddleware;
 use App\Application\Request\ClientListCriteriaConfig;
 use App\Application\Request\ClientRequestValidator;
 use App\Application\Request\ListCriteriaParser;
@@ -44,6 +45,22 @@ $builder->addDefinitions([
             return ($path !== '' && $path[0] === '/') ? $path : $baseDir . '/' . $path;
         })(),
         'auth_secret' => $_ENV['AUTH_SECRET'] ?? 'change-me-in-production',
+        'cors' => [
+            'allowed_origins' => (function () {
+                $raw = trim((string) ($_ENV['CORS_ALLOWED_ORIGINS'] ?? ''));
+                if ($raw === '') {
+                    return ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+                }
+                return array_filter(array_map('trim', explode(',', $raw)));
+            })(),
+            'extra_headers' => (function () {
+                $raw = trim((string) ($_ENV['CORS_EXTRA_HEADERS'] ?? ''));
+                if ($raw === '') {
+                    return [];
+                }
+                return array_filter(array_map('trim', explode(',', $raw)));
+            })(),
+        ],
     ],
 
     PDO::class => function (ContainerInterface $c) {
@@ -99,6 +116,14 @@ $builder->addDefinitions([
     DeleteClientAction::class => \DI\autowire(),
 
     AuthMiddleware::class => \DI\autowire(),
+
+    CorsMiddleware::class => function (ContainerInterface $c) {
+        $cors = $c->get('settings')['cors'];
+        return new CorsMiddleware(
+            allowedOrigins: $cors['allowed_origins'],
+            extraAllowedHeaders: $cors['extra_headers'],
+        );
+    },
 ]);
 
 return $builder->build();
