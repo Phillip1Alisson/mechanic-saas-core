@@ -46,6 +46,13 @@ php -S localhost:8080 -t public
 
 A API fica em `http://localhost:8080`.
 
+---
+
+## Documentação complementar
+
+- Detalhes de arquitetura, fluxos e manutenção: `DOCUMENTATION.md`.
+- Histórico de entregas técnicas: `CHANGELOG.md`.
+
 ## Endpoints
 
 | Método | Rota | Auth | Descrição |
@@ -147,6 +154,18 @@ database.sql              # Script das tabelas users e clients
 - **Logs:** PSR-3 (Monolog) em arquivo ou serviço externo; não expor stack trace em respostas.
 - **Segurança:** HTTPS; trocar `AUTH_SECRET`; considerar JWT/OAuth2 em vez de token customizado; rate limiting e CORS configurados.
 - **Ambiente:** Manter `REPOSITORY=mysql` em produção; JSON apenas para desenvolvimento/demo.
+
+## Próximas melhorias sugeridas
+
+- **ORM + migrations versionadas:** Adotar Doctrine ORM/Eloquent (Capsule) com migrations oficiais para padronizar o schema, permitir rollback e facilitar o CI/CD.
+- **Gestão avançada de usuários:** Expor CRUD de usuários, perfis e um modelo simples de RBAC para liberar recursos só para quem tiver os papéis corretos.
+- **Responses e DTOs padronizados:** Centralizar serialização em um helper (`ApiResponse`) e em DTOs, evitando repetição de `json_encode` nas Actions e dando espaço para versionar contratos.
+- **Value Objects para documentos/telefone:** Encapsular CPF, CNPJ e telefone em objetos reutilizáveis para reforçar validações e normalização em todos os repositórios.
+- **Tratamento rico de erros HTTP:** Mapear exceções de domínio para códigos HTTP adequados via error middleware, deixando Action livre para lançar exceções e simplificando testes.
+- **Scripts Composer & automação:** Criar comandos (`composer serve`, `composer db:migrate`, `composer db:seed`) e alinhar referências de arquivos (`database/database.sql`) para reduzir atrito de onboarding.
+- **Observabilidade e métricas:** Registrar eventos (login, criação/edição de clientes) e expor endpoints de estatísticas (ex.: clientes por tipo, evolução mensal) para dar insumos ao frontend.
+- **Testabilidade do AuthService:** Injetar um clock/abstração de tempo para permitir testes determinísticos de expiração de token.
+- **Soft delete consistente:** Garantir índices únicos condicionais (documento único somente quando `deleted_at IS NULL`) e alinhar comportamento entre MySQL e JSON.
 
 ## Licença
 
